@@ -26,37 +26,43 @@ def translate_text(text, source_language, target_language):
     return result.get('TranslatedText')
 
 
-def translate_pot_file(pot_file, target_po_file):
-    """Translate entries in a .pot file and save to a new .po file."""
-    # Load your .pot file
-    pot = polib.pofile(pot_file)
+def translate_po_or_pot_file(input_file, target_po_file, source_language='en', target_language='ro'):
+    """Translate entries in a .po or .pot file and save to a new .po file."""
+    # Load your .po or .pot file
+    po_file = polib.pofile(input_file)
 
-    # Create a new .po file object
-    po = polib.POFile()
+    # Create a new .po file object to save the translations
+    translated_po = polib.POFile()
 
-    # Copy metadata from the original .pot file
-    po.metadata = pot.metadata
+    # Copy metadata from the original .po/.pot file
+    translated_po.metadata = po_file.metadata
 
-    # Iterate over .pot file entries
-    for entry in pot:
-        # Skip entries that don't need translation
+    # Iterate over entries in the .po/.pot file
+    for entry in po_file:
+        # Skip entries that don't need translation (msgid is empty)
         if not entry.msgid:
             continue
 
-        # Translate the text
-        translated_text = translate_text(entry.msgid, 'en', 'ro')
+        # Check if it's a .po file and if there's already a translation
+        if entry.msgstr:
+            # Skip already translated entries (optional behavior, you can overwrite if needed)
+            continue
 
-        # Create a new POEntry with translated text
+        # Translate the text
+        translated_text = translate_text(
+            entry.msgid, source_language, target_language)
+
+        # Create a new POEntry with the translated text
         new_entry = polib.POEntry(
             msgid=entry.msgid,
             msgstr=translated_text
         )
 
-        # Add the new entry to the .po file object
-        po.append(new_entry)
+        # Add the new entry to the translated .po file object
+        translated_po.append(new_entry)
 
-    # Save the translations to a new .po file
-    po.save(target_po_file)
+    # Save the translations to the new .po file
+    translated_po.save(target_po_file)
     print(f"Translation completed. The translated file is saved as '{
           target_po_file}'.")
 
@@ -101,17 +107,17 @@ def translate_json_file(json_file, target_json_file, source_language='en', targe
 
 
 def po_main():
-    # Path to the original .pot file
-    pot_file_path = 'data/default.pot'
+    # Path to the original .po or .pot file
+    input_file_path = 'data/ro.po'  # Adjust the file path as needed
 
     # Specify the name of the target .po file
-    target_po_file_path = 'translated/ro.po'
+    target_po_file_path = 'translated/ro_translated.po'
 
     # Ensure the paths are absolute
-    abs_pot_file_path = os.path.abspath(pot_file_path)
+    abs_input_file_path = os.path.abspath(input_file_path)
     abs_target_po_file_path = os.path.abspath(target_po_file_path)
 
-    translate_pot_file(abs_pot_file_path, abs_target_po_file_path)
+    translate_po_or_pot_file(abs_input_file_path, abs_target_po_file_path)
 
 
 def json_main():
@@ -129,8 +135,9 @@ def json_main():
 
 
 def main():
-    # po_main()
-    json_main()
+    # Select the main function depending on the file type you want to translate
+    po_main()
+    # json_main()
 
 
 if __name__ == "__main__":
